@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsNotEmpty, IsString,IsNumber } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class ClaimMediaDto {
@@ -11,6 +11,11 @@ export class ClaimMediaDto {
   @IsString()
   @IsNotEmpty()
   watchReceipt: string;
+
+  @ApiProperty()
+  @IsNumber()
+  @IsNotEmpty()
+  reward: number;
 
   @ApiProperty()
   @IsString()

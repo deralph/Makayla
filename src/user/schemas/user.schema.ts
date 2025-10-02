@@ -10,6 +10,23 @@ export class User {
   @Prop({ required: true, unique: true, index: true })
   deviceId: string;
 
+  @Prop({ required: true }) // Added to schema
+  userFullname: string;
+
+  @Prop({ required: true }) // Added to schema
+  deviceName: string;
+
+  @Prop({ required: true, unique: true, index: true }) // Added to schema
+  imei: string;
+
+  // Add deviceInfo to the schema
+  @Prop({ type: Object, required: true }) // Stores the entire deviceInfo object
+  deviceInfo: {
+    model: string;
+    osVersion: string;
+    appVersion: string;
+  };
+
   @Prop({ default: 0, index: true })
   coins: number;
 
@@ -63,6 +80,6 @@ export class User {
 export const UserSchema = SchemaFactory.createForClass(User);
 
 // Compound indexes for better query performance
-UserSchema.index({ rankPoints: -1, coins: -1 }); // For leaderboard queries
-UserSchema.index({ deviceId: 1, lastSynced: -1 }); // For user state queries
-UserSchema.index({ 'friends.friendId': 1 }); // For friend-related queries
+UserSchema.index({ rankPoints: -1, coins: -1 });
+UserSchema.index({ deviceId: 1, lastSynced: -1 });
+UserSchema.index({ 'friends.friendId': 1 });

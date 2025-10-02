@@ -25,36 +25,35 @@ export class AuthService {
   ) {}
 
  
+async registerDevice(registerDeviceDto: RegisterDeviceDto): Promise<{
+  deviceToken: string;
+  refreshToken: string;
+  userId: string;
+  createdAt: Date;
+  userFullname: string;
+  deviceName: string;
+  imei: string;
+}> {
+  
+  let user = await this.userService.findByDeviceId(registerDeviceDto.deviceId);
 
-  async registerDevice(registerDeviceDto: RegisterDeviceDto): Promise<{
-    deviceToken: string;
-    refreshToken: string;
-    userId: string;
-    createdAt: Date;
-  }> {
-    let user = await this.userService.findByDeviceId(
-      registerDeviceDto.deviceId,
-    );
-
-    if (!user) {
-      user = await this.userService.create(registerDeviceDto);
-    }
-
-    const tokens = this.generateTokens(user.deviceId, 'device');
-
-    await this.userService.updateRefreshToken(
-      user.deviceId,
-      tokens.refreshToken,
-    );
-
-    return {
-      deviceToken: tokens.accessToken,
-      refreshToken: tokens.refreshToken,
-      userId: user._id.toString(),
-      createdAt: user.createdAt,
-    };
+  if (!user) {
+    user = await this.userService.create(registerDeviceDto);
   }
+  const tokens = this.generateTokens(user.deviceId, 'device');
 
+  await this.userService.updateRefreshToken(user.deviceId, tokens.refreshToken);
+
+  return {
+    deviceToken: tokens.accessToken,
+    refreshToken: tokens.refreshToken,
+    userId: user._id.toString(),
+    createdAt: user.createdAt,
+    userFullname: user.userFullname,
+    deviceName: user.deviceName,
+    imei: user.imei,
+  };
+}
   async refreshToken(refreshTokenDto: RefreshTokenDto): Promise<JwtTokens> {
     const { deviceId, refreshToken } = refreshTokenDto;
 
@@ -156,7 +155,7 @@ export class AuthService {
 
     // Verify 2FA if enabled
     if (admin.twoFactorEnabled) {
-      await this.verifyTwoFactor(admin.id, loginAdminDto.otp);
+      await this.verifyTwoFactor(admin.id, loginAdminDto.otp!);
     }
 
     // Update last login

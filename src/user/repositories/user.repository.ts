@@ -13,30 +13,33 @@ export class UserRepository {
   async findByDeviceId(deviceId: string): Promise<UserDocument | null> {
     return this.userModel.findOne({ deviceId }).exec();
   }
-
-  async create(registerDeviceDto: RegisterDeviceDto): Promise<UserDocument> {
-    const createdUser = new this.userModel({
-      deviceId: registerDeviceDto.deviceId,
-      coins: 0,
-      energy: 1000,
-      energyLimit: 1000,
-      profitPerHour: 0,
-      level: 1,
-      multitapLevel: 0,
-      rank: 'Bronze',
-      rankPoints: 0,
-      missions: {
-        daily: [],
-        social: {
-          telegramJoined: false,
-          xFollowed: false,
-          postShared: false,
-        },
+async create(registerDeviceDto: RegisterDeviceDto): Promise<UserDocument> {
+  const createdUser = new this.userModel({
+    // Spread all properties from the DTO to ensure all required fields are included
+    ...registerDeviceDto,
+    // Default values for other user properties
+    coins: 0,
+    energy: 1000,
+    energyLimit: 1000,
+    profitPerHour: 0,
+    level: 1,
+    multitapLevel: 0,
+    rank: 'Bronze',
+    rankPoints: 0,
+    missions: {
+      daily: [],
+      social: {
+        telegramJoined: false,
+        xFollowed: false,
+        postShared: false,
       },
-      friends: [],
-    });
-    return createdUser.save();
-  }
+    },
+    friends: [],
+    createdAt: new Date(),
+  });
+  
+  return createdUser.save();
+}
 
   async updateRefreshToken(
     deviceId: string,
