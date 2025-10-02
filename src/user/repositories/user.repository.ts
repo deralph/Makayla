@@ -13,38 +13,38 @@ export class UserRepository {
   async findByDeviceId(deviceId: string): Promise<UserDocument | null> {
     return this.userModel.findOne({ deviceId }).exec();
   }
-async create(registerDeviceDto: RegisterDeviceDto): Promise<UserDocument> {
-  const createdUser = new this.userModel({
-    // Spread all properties from the DTO to ensure all required fields are included
-    ...registerDeviceDto,
-    // Default values for other user properties
-    coins: 0,
-    energy: 1000,
-    energyLimit: 1000,
-    profitPerHour: 0,
-    level: 1,
-    multitapLevel: 0,
-    rank: 'Bronze',
-    rankPoints: 0,
-    missions: {
-      daily: [],
-      social: {
-        telegramJoined: false,
-        xFollowed: false,
-        postShared: false,
-      },
-    },
-    friends: [],
-    createdAt: new Date(),
-  });
-  
-  return createdUser.save();
-}
 
-  async updateRefreshToken(
-    deviceId: string,
-    refreshToken: string,
-  ): Promise<UserDocument> {
+  async findById(userId: string): Promise<UserDocument | null> {
+    return this.userModel.findById(userId).exec();
+  }
+
+  async create(registerDeviceDto: RegisterDeviceDto): Promise<UserDocument> {
+    const createdUser = new this.userModel({
+      ...registerDeviceDto,
+      coins: 0,
+      energy: 1000,
+      energyLimit: 1000,
+      profitPerHour: 0,
+      level: 1,
+      multitapLevel: 0,
+      rank: 'Bronze',
+      rankPoints: 0,
+      missions: {
+        daily: [],
+        social: {
+          telegramJoined: false,
+          xFollowed: false,
+          postShared: false,
+        },
+      },
+      friends: [],
+      createdAt: new Date(),
+    });
+    
+    return createdUser.save();
+  }
+
+  async updateRefreshToken(deviceId: string, refreshToken: string): Promise<UserDocument> {
     const user = await this.userModel
       .findOneAndUpdate({ deviceId }, { refreshToken }, { new: true })
       .exec();
@@ -56,6 +56,55 @@ async create(registerDeviceDto: RegisterDeviceDto): Promise<UserDocument> {
     return user;
   }
 
+  async updateProfilePicture(deviceId: string, profilePictureUrl: string): Promise<UserDocument> {
+    const user = await this.userModel
+      .findOneAndUpdate(
+        { deviceId },
+        { profilePicture: profilePictureUrl },
+        { new: true }
+      )
+      .exec();
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    return user;
+  }
+
+  async removeProfilePicture(deviceId: string): Promise<UserDocument> {
+    const user = await this.userModel
+      .findOneAndUpdate(
+        { deviceId },
+        { $unset: { profilePicture: 1 } },
+        { new: true }
+      )
+      .exec();
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    return user;
+  }
+
+  async updateUserProfile(deviceId: string, updateData: Partial<User>): Promise<UserDocument> {
+    const user = await this.userModel
+      .findOneAndUpdate(
+        { deviceId },
+        { $set: updateData },
+        { new: true }
+      )
+      .exec();
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    return user;
+  }
+
+  // ... keep all your existing methods (updateState, updateUserState, addFriend, etc.)
   async updateState(
     deviceId: string,
     syncUserStateDto: SyncUserStateDto,
@@ -64,7 +113,6 @@ async create(registerDeviceDto: RegisterDeviceDto): Promise<UserDocument> {
     const updateData: any = {
       lastSynced: new Date(),
     };
-    
 
     // Apply operations from the sync request
     if (syncUserStateDto.ops && syncUserStateDto.ops.length > 0) {
@@ -72,22 +120,17 @@ async create(registerDeviceDto: RegisterDeviceDto): Promise<UserDocument> {
         switch (op.type) {
           case 'tap':
             updateData.$inc = updateData.$inc || {};
-            updateData.$inc.coins =
-              (updateData.$inc.coins || 0) + (op.amount || 0);
-            updateData.$inc.energy =
-              (updateData.$inc.energy || 0) - (op.amount || 0);
+            updateData.$inc.coins = (updateData.$inc.coins || 0) + (op.amount || 0);
+            updateData.$inc.energy = (updateData.$inc.energy || 0) - (op.amount || 0);
             break;
           case 'purchase':
             updateData.$inc = updateData.$inc || {};
-            updateData.$inc.coins =
-              (updateData.$inc.coins || 0) - (op.cost || 0);
-            // Handle specific item purchases
+            updateData.$inc.coins = (updateData.$inc.coins || 0) - (op.cost || 0);
             if (op.item === 'multitap') {
               updateData.$inc = updateData.$inc || {};
               updateData.$inc.multitapLevel = 1;
             }
             break;
-          // Add more operation types as needed
         }
       }
     }
@@ -109,10 +152,7 @@ async create(registerDeviceDto: RegisterDeviceDto): Promise<UserDocument> {
     return user;
   }
 
-  async updateUserState(
-    deviceId: string,
-    updateData: UpdateUserStateDto,
-  ): Promise<UserDocument> {
+  async updateUserState(deviceId: string, updateData: UpdateUserStateDto): Promise<UserDocument> {
     const user = await this.userModel
       .findOneAndUpdate({ deviceId }, updateData, { new: true })
       .exec();
@@ -124,11 +164,7 @@ async create(registerDeviceDto: RegisterDeviceDto): Promise<UserDocument> {
     return user;
   }
 
-  async addFriend(
-    deviceId: string,
-    friendDeviceId: string,
-    earned: number,
-  ): Promise<UserDocument> {
+  async addFriend(deviceId: string, friendDeviceId: string, earned: number): Promise<UserDocument> {
     const user = await this.userModel
       .findOneAndUpdate(
         { deviceId },
