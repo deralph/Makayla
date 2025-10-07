@@ -1,5 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
+import { Level } from '../../level/schema/level.schema';
 
 export type UserDocument = User & Document;
 
@@ -77,6 +78,9 @@ export class User {
 
   @Prop()
   updatedAt: Date;
+
+  @Prop({ type: Types.ObjectId, ref: 'Level', default: 1 }) // Default to level 1
+  currentLevel: Level;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

@@ -40,11 +40,14 @@ export class UserRepository {
       friends: [],
       createdAt: new Date(),
     });
-    
+
     return createdUser.save();
   }
 
-  async updateRefreshToken(deviceId: string, refreshToken: string): Promise<UserDocument> {
+  async updateRefreshToken(
+    deviceId: string,
+    refreshToken: string,
+  ): Promise<UserDocument> {
     const user = await this.userModel
       .findOneAndUpdate({ deviceId }, { refreshToken }, { new: true })
       .exec();
@@ -56,12 +59,15 @@ export class UserRepository {
     return user;
   }
 
-  async updateProfilePicture(deviceId: string, profilePictureUrl: string): Promise<UserDocument> {
+  async updateProfilePicture(
+    deviceId: string,
+    profilePictureUrl: string,
+  ): Promise<UserDocument> {
     const user = await this.userModel
       .findOneAndUpdate(
         { deviceId },
         { profilePicture: profilePictureUrl },
-        { new: true }
+        { new: true },
       )
       .exec();
 
@@ -77,7 +83,7 @@ export class UserRepository {
       .findOneAndUpdate(
         { deviceId },
         { $unset: { profilePicture: 1 } },
-        { new: true }
+        { new: true },
       )
       .exec();
 
@@ -88,13 +94,12 @@ export class UserRepository {
     return user;
   }
 
-  async updateUserProfile(deviceId: string, updateData: Partial<User>): Promise<UserDocument> {
+  async updateUserProfile(
+    deviceId: string,
+    updateData: Partial<User>,
+  ): Promise<UserDocument> {
     const user = await this.userModel
-      .findOneAndUpdate(
-        { deviceId },
-        { $set: updateData },
-        { new: true }
-      )
+      .findOneAndUpdate({ deviceId }, { $set: updateData }, { new: true })
       .exec();
 
     if (!user) {
@@ -120,12 +125,15 @@ export class UserRepository {
         switch (op.type) {
           case 'tap':
             updateData.$inc = updateData.$inc || {};
-            updateData.$inc.coins = (updateData.$inc.coins || 0) + (op.amount || 0);
-            updateData.$inc.energy = (updateData.$inc.energy || 0) - (op.amount || 0);
+            updateData.$inc.coins =
+              (updateData.$inc.coins || 0) + (op.amount || 0);
+            updateData.$inc.energy =
+              (updateData.$inc.energy || 0) - (op.amount || 0);
             break;
           case 'purchase':
             updateData.$inc = updateData.$inc || {};
-            updateData.$inc.coins = (updateData.$inc.coins || 0) - (op.cost || 0);
+            updateData.$inc.coins =
+              (updateData.$inc.coins || 0) - (op.cost || 0);
             if (op.item === 'multitap') {
               updateData.$inc = updateData.$inc || {};
               updateData.$inc.multitapLevel = 1;
@@ -152,19 +160,11 @@ export class UserRepository {
     return user;
   }
 
-  async updateUserState(deviceId: string, updateData: UpdateUserStateDto): Promise<UserDocument> {
-    const user = await this.userModel
-      .findOneAndUpdate({ deviceId }, updateData, { new: true })
-      .exec();
-
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
-
-    return user;
-  }
-
-  async addFriend(deviceId: string, friendDeviceId: string, earned: number): Promise<UserDocument> {
+  async addFriend(
+    deviceId: string,
+    friendDeviceId: string,
+    earned: number,
+  ): Promise<UserDocument> {
     const user = await this.userModel
       .findOneAndUpdate(
         { deviceId },
@@ -197,5 +197,25 @@ export class UserRepository {
 
   async getUsersByIds(deviceIds: string[]): Promise<UserDocument[]> {
     return this.userModel.find({ deviceId: { $in: deviceIds } }).exec();
+  }
+  // Add this to your UserRepository class in user.repository.ts
+
+  async updateUserState(
+    deviceId: string,
+    updateData: any, // Consider creating a more specific type instead of 'any'
+  ): Promise<UserDocument> {
+    const user = await this.userModel
+      .findOneAndUpdate(
+        { deviceId },
+        updateData, // This can include MongoDB operators like $set, $inc
+        { new: true }, // Return the updated document
+      )
+      .exec();
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    return user;
   }
 }

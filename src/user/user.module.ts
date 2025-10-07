@@ -6,11 +6,13 @@ import { UserController } from './user.controller';
 import { User, UserSchema } from './schemas/user.schema';
 import { UserRepository } from './repositories/user.repository';
 import { S3Service } from './repositories/s3.service';
+import { LevelModule } from '../level/level.module';
 
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
     ConfigModule, // Make sure ConfigModule is imported for S3Service
+    LevelModule,
   ],
   controllers: [UserController],
   providers: [UserService, UserRepository, S3Service],
