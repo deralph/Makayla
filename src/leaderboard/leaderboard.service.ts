@@ -12,7 +12,7 @@ export class LeaderboardService {
     return {
       topPlayers: users.map((user, index) => ({
         rank: index + 1,
-        name: user.deviceId,
+        name: user.userFullname,
         points: user.rankPoints, // Use rankPoints for ranking
       })),
       prizeWinners: this.generatePrizeTable(users.slice(0, 10)),
@@ -41,7 +41,7 @@ export class LeaderboardService {
     return {
       friendsRank: sortedFriends.map((friend, index) => ({
         rank: index + 1,
-        name: friend.deviceId,
+        name: friend.userFullname,
         points: friend.rankPoints,
       })),
       yourRank: userRank,
