@@ -61,12 +61,19 @@ export class MissionsService {
       }
     }
 
-    // Award coins
-    await this.coinsService.updateCoins(deviceId, {
-      delta: mission.reward,
-      reason: `mission_${mission.type}_reward`,
-      opId: claimMissionDto.opId,
-    });
+    if (mission.type === 'social') {
+      const rewardsClaimed = user.missions.social.rewardsClaimed || {};
+      if (rewardsClaimed[mission._id.toString()]) {
+        throw new BadRequestException('Social mission reward already claimed');
+      }
+    }
+
+    const rewardSummary = await this.applyMissionRewards(
+      deviceId,
+      user,
+      mission,
+      claimMissionDto.opId,
+    );
 
     // Update mission status
     if (mission.type === 'daily') {
@@ -79,12 +86,23 @@ export class MissionsService {
       await this.userService.updateUserState(deviceId, {
         missions: { ...user.missions, daily: dailyMissions },
       } as any);
+    } else if (mission.type === 'social') {
+      const rewardsClaimed = {
+        ...(user.missions.social.rewardsClaimed || {}),
+        [mission._id.toString()]: true,
+      };
+
+      await this.userService.updateUserState(deviceId, {
+        $set: {
+          'missions.social.rewardsClaimed': rewardsClaimed,
+        },
+      });
     }
 
     return {
       success: true,
-      reward: mission.reward,
-      newBalance: user.coins + mission.reward,
+      rewards: rewardSummary.rewards,
+      newBalance: rewardSummary.newBalance,
       missionState: mission.type === 'daily' ? 'claimed' : 'completed',
     };
   }
@@ -150,6 +168,11 @@ export class MissionsService {
       return dailyMission?.claimed ? 'claimed' : 'available';
     } else if (mission.type === 'social') {
       const platform = mission.meta.platform;
+      const rewardsClaimed = user.missions.social.rewardsClaimed || {};
+      const missionId = mission._id.toString();
+      if (rewardsClaimed[missionId]) {
+        return 'claimed';
+      }
       if (platform === 'telegram')
         return user.missions.social.telegramJoined ? 'completed' : 'available';
       if (platform === 'x')
@@ -163,6 +186,124 @@ export class MissionsService {
   private async verifySocialMission(evidence: any): Promise<boolean> {
     // In a real implementation, this would verify with social media APIs
     // For now, we'll just return true for demonstration
+    return true;
+  }
+
+  private async applyMissionRewards(
+    deviceId: string,
+    user: any,
+    mission: MissionDocument,
+    opId: string,
+  ) {
+    if (
+      mission.type === 'social' &&
+      !this.isSocialMissionCompleted(user, mission)
+    ) {
+      throw new BadRequestException('Mission requirements not fulfilled yet');
+    }
+
+    const rewards =
+      mission.rewards && mission.rewards.length > 0
+        ? mission.rewards
+        : [{ type: 'coins', amount: mission.reward }];
+
+    let totalCoinReward = 0;
+    const updateDoc: any = { $inc: {}, $set: {}, $push: {} };
+
+    for (const reward of rewards) {
+      switch (reward.type) {
+        case 'coins': {
+          totalCoinReward += reward.amount || 0;
+          break;
+        }
+        case 'booster': {
+          const boosterType =
+            reward.boosterType || reward.typeName || 'generic';
+          const amount = reward.amount || 1;
+          if (amount > 0) {
+            updateDoc.$inc[`boosterInventory.${boosterType}`] =
+              (updateDoc.$inc[`boosterInventory.${boosterType}`] || 0) + amount;
+          }
+          if (reward.durationMinutes) {
+            const expiresAt = new Date(
+              Date.now() + reward.durationMinutes * 60000,
+            );
+            updateDoc.$push.activeBoosters = {
+              boosterType,
+              multiplier: reward.multiplier,
+              expiresAt,
+            };
+          }
+          break;
+        }
+        case 'energy': {
+          const amount = reward.amount ?? user.energyLimit;
+          const newEnergy = Math.min(
+            user.energyLimit,
+            (user.energy || 0) + amount,
+          );
+          updateDoc.$set.energy = newEnergy;
+          break;
+        }
+        default:
+          break;
+      }
+    }
+
+    const cleanedUpdate = this.cleanUpdateDoc(updateDoc);
+    let updatedUser = user;
+    if (Object.keys(cleanedUpdate).length > 0) {
+      updatedUser = await this.userService.updateUserState(
+        deviceId,
+        cleanedUpdate,
+      );
+    }
+
+    if (totalCoinReward > 0) {
+      await this.coinsService.updateCoins(deviceId, {
+        delta: totalCoinReward,
+        reason: `mission_${mission.type}_reward`,
+        opId,
+      });
+      updatedUser = await this.userService.findByDeviceId(deviceId);
+    }
+
+    return {
+      rewards,
+      newBalance: updatedUser.coins,
+    };
+  }
+
+  private cleanUpdateDoc(updateDoc: Record<string, any>) {
+    return Object.fromEntries(
+      Object.entries(updateDoc).filter(([, value]) => {
+        if (value == null) return false;
+        if (typeof value === 'object') {
+          if (Array.isArray(value) && value.length === 0) {
+            return false;
+          }
+          return Object.keys(value).length > 0;
+        }
+        return true;
+      }),
+    );
+  }
+
+  private isSocialMissionCompleted(user: any, mission: MissionDocument) {
+    const platform = mission.meta?.platform;
+    if (!platform) {
+      return true;
+    }
+
+    if (platform === 'telegram') {
+      return !!user.missions.social.telegramJoined;
+    }
+    if (platform === 'x') {
+      return !!user.missions.social.xFollowed;
+    }
+    if (platform === 'share') {
+      return !!user.missions.social.postShared;
+    }
     return true;
   }
 }

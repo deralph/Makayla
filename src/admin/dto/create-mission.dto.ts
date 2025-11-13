@@ -1,4 +1,12 @@
-import { IsNotEmpty, IsString, IsNumber, IsOptional, IsObject, IsBoolean } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsString,
+  IsNumber,
+  IsOptional,
+  IsObject,
+  IsBoolean,
+  IsArray,
+} from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateMissionDto {
@@ -31,6 +39,11 @@ export class CreateMissionDto {
   @IsObject()
   @IsOptional()
   meta?: Record<string, any>;
+
+  @ApiProperty({ required: false, type: [Object] })
+  @IsArray()
+  @IsOptional()
+  rewards?: Array<Record<string, any>>;
 
   @ApiProperty({ required: false })
   @IsNumber()

@@ -1,30 +1,14 @@
-import {
-  IsNotEmpty,
-  IsString,
-  IsOptional,
-  IsObject,
-  IsBoolean,
-} from 'class-validator';
+import { IsOptional, IsObject } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class UpdateConfigDto {
-  @ApiProperty()
-  @IsString()
-  @IsNotEmpty()
-  key: string;
-
-  @ApiProperty()
+  @ApiProperty({ required: false, type: Object })
   @IsObject()
   @IsOptional()
-  value?: any;
+  gameSettings?: Record<string, any>;
 
-  @ApiProperty({ required: false })
-  @IsString()
+  @ApiProperty({ required: false, type: Object })
+  @IsObject()
   @IsOptional()
-  type?: string;
-
-  @ApiProperty({ required: false })
-  @IsBoolean()
-  @IsOptional()
-  active?: boolean;
+  economySettings?: Record<string, any>;
 }

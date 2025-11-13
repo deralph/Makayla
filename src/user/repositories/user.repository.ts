@@ -35,9 +35,13 @@ export class UserRepository {
           telegramJoined: false,
           xFollowed: false,
           postShared: false,
+          rewardsClaimed: {},
         },
       },
       friends: [],
+      boosterInventory: {},
+      activeBoosters: [],
+      banned: false,
       createdAt: new Date(),
     });
 
