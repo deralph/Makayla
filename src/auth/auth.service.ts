@@ -1,4 +1,9 @@
-import { Injectable, UnauthorizedException, ForbiddenException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
@@ -24,36 +29,41 @@ export class AuthService {
     private readonly configService: ConfigService,
   ) {}
 
- 
-async registerDevice(registerDeviceDto: RegisterDeviceDto): Promise<{
-  deviceToken: string;
-  refreshToken: string;
-  userId: string;
-  createdAt: Date;
-  userFullname: string;
-  deviceName: string;
-  imei: string;
-}> {
-  
-  let user = await this.userService.findByDeviceId(registerDeviceDto.deviceId);
+  async registerDevice(registerDeviceDto: RegisterDeviceDto): Promise<{
+    deviceToken: string;
+    refreshToken: string;
+    userId: string;
+    createdAt: Date;
+    userFullname: string;
+    deviceName: string;
+    imei: string;
+  }> {
+    let user = await this.userService.findByDeviceId(
+      registerDeviceDto.deviceId,
+    );
 
-  if (!user) {
-    user = await this.userService.create(registerDeviceDto);
+    if (!user) {
+      user = await this.userService.create(registerDeviceDto);
+    }
+
+    await this.ensureUserNotBanned(user);
+    const tokens = this.generateTokens(user.deviceId, 'device');
+
+    await this.userService.updateRefreshToken(
+      user.deviceId,
+      tokens.refreshToken,
+    );
+
+    return {
+      deviceToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+      userId: user._id.toString(),
+      createdAt: user.createdAt,
+      userFullname: user.userFullname,
+      deviceName: user.deviceName,
+      imei: user.imei,
+    };
   }
-  const tokens = this.generateTokens(user.deviceId, 'device');
-
-  await this.userService.updateRefreshToken(user.deviceId, tokens.refreshToken);
-
-  return {
-    deviceToken: tokens.accessToken,
-    refreshToken: tokens.refreshToken,
-    userId: user._id.toString(),
-    createdAt: user.createdAt,
-    userFullname: user.userFullname,
-    deviceName: user.deviceName,
-    imei: user.imei,
-  };
-}
   async refreshToken(refreshTokenDto: RefreshTokenDto): Promise<JwtTokens> {
     const { deviceId, refreshToken } = refreshTokenDto;
 
@@ -61,6 +71,8 @@ async registerDevice(registerDeviceDto: RegisterDeviceDto): Promise<{
     if (!user || user.refreshToken !== refreshToken) {
       throw new UnauthorizedException('Invalid refresh token');
     }
+
+    await this.ensureUserNotBanned(user);
 
     const tokens = this.generateTokens(deviceId, 'device');
     await this.userService.updateRefreshToken(deviceId, tokens.refreshToken);
@@ -73,6 +85,7 @@ async registerDevice(registerDeviceDto: RegisterDeviceDto): Promise<{
     if (!user) {
       throw new UnauthorizedException('Invalid device token');
     }
+    await this.ensureUserNotBanned(user);
     return user;
   }
 
@@ -341,6 +354,32 @@ async registerDevice(registerDeviceDto: RegisterDeviceDto): Promise<{
 
   async listAdmins(): Promise<AdminDocument[]> {
     return this.adminModel.find().sort({ createdAt: -1 }).exec();
+  }
+
+  private async ensureUserNotBanned(user: UserDocument) {
+    if (!user.banned) {
+      return;
+    }
+
+    if (user.bannedUntil && user.bannedUntil.getTime() < Date.now()) {
+      user.banned = false;
+      user.bannedUntil = undefined;
+      user.banReason = undefined;
+      await this.userService.updateUserState(user.deviceId, {
+        $set: {
+          banned: false,
+          bannedUntil: null,
+          banReason: null,
+        },
+      });
+      return;
+    }
+
+    throw new ForbiddenException(
+      `Account is banned${
+        user.banReason ? `: ${user.banReason}` : ''
+      }${user.bannedUntil ? ` until ${user.bannedUntil.toISOString()}` : ''}`,
+    );
   }
 
   private generateTokens(deviceId: string, type: string): JwtTokens {

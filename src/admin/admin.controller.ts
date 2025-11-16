@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Body, Param, UseGuards, Query, Put, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  UseGuards,
+  Query,
+  Put,
+  Delete,
+} from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { AdjustBalanceDto } from './dto/adjust-balance.dto';
 import { BanUserDto } from './dto/ban-user.dto';
@@ -8,7 +18,13 @@ import { CreateShopItemDto } from './dto/create-shop-item.dto';
 import { UpdateMissionDto } from './dto/update-mission.dto';
 import { UpdateShopItemDto } from './dto/update-shop-item.dto';
 import { AdminAuthGuard } from '../auth/guards/admin-auth.guard';
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
+import { UpdateConfigDto } from './dto/update-config.dto';
 
 @ApiTags('admin')
 @ApiBearerAuth()
@@ -19,7 +35,10 @@ export class AdminController {
 
   @Get('users')
   @ApiOperation({ summary: 'Get users list' })
-  @ApiResponse({ status: 200, description: 'Users list retrieved successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Users list retrieved successfully',
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getUsers(
     @Query('limit') limit: number = 50,
@@ -30,7 +49,10 @@ export class AdminController {
 
   @Get('users/:deviceId')
   @ApiOperation({ summary: 'Get user details' })
-  @ApiResponse({ status: 200, description: 'User details retrieved successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'User details retrieved successfully',
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 404, description: 'User not found' })
   async getUser(@Param('deviceId') deviceId: string) {
@@ -48,7 +70,6 @@ export class AdminController {
   ) {
     return this.adminService.adjustBalance(deviceId, adjustBalanceDto);
   }
-
 
   @Post('users/:deviceId/ban')
   @ApiOperation({ summary: 'Ban user' })
@@ -163,7 +184,7 @@ export class AdminController {
 
   @Post('config')
   @ApiOperation({ summary: 'Update game configuration' })
-  async updateConfig(@Body() config: any) {
+  async updateConfig(@Body() config: UpdateConfigDto) {
     return this.adminService.updateConfig(config);
   }
 
@@ -180,11 +201,11 @@ export class AdminController {
     return this.adminService.getDailyStats(date);
   }
 
-@Post('register')
-@ApiOperation({ summary: 'Register new admin' })
-@ApiResponse({ status: 201, description: 'Admin registered successfully' })
-@ApiResponse({ status: 409, description: 'Admin username already exists' })
-async registerAdmin(@Body() createAdminDto: CreateAdminDto) {
-  return this.adminService.registerAdmin(createAdminDto);
-}
+  @Post('register')
+  @ApiOperation({ summary: 'Register new admin' })
+  @ApiResponse({ status: 201, description: 'Admin registered successfully' })
+  @ApiResponse({ status: 409, description: 'Admin username already exists' })
+  async registerAdmin(@Body() createAdminDto: CreateAdminDto) {
+    return this.adminService.registerAdmin(createAdminDto);
+  }
 }

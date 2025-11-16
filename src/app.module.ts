@@ -11,6 +11,10 @@ import { LeaderboardModule } from './leaderboard/leaderboard.module';
 import { InvitesModule } from './invites/invites.module';
 import { MediaModule } from './media/media.module';
 import { AdminModule } from './admin/admin.module';
+import { TournamentsModule } from './tournaments/tournaments.module';
+import { GiftingModule } from './gifting/gifting.module';
+import { RedeemModule } from './redeem/redeem.module';
+import { NotificationsModule } from './notifications/notifications.module';
 import configuration from './config/configuration';
 
 @Module({
@@ -45,6 +49,10 @@ import configuration from './config/configuration';
     InvitesModule,
     MediaModule,
     AdminModule,
+    TournamentsModule,
+    GiftingModule,
+    RedeemModule,
+    NotificationsModule,
   ],
 })
 export class AppModule {}

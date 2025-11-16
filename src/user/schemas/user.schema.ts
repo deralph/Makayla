@@ -61,11 +61,40 @@ export class User {
       telegramJoined: boolean;
       xFollowed: boolean;
       postShared: boolean;
+      rewardsClaimed: Record<string, boolean>;
     };
   };
 
   @Prop({ type: [{ friendId: String, earned: Number }], default: [] })
   friends: Array<{ friendId: string; earned: number }>;
+
+  @Prop({ type: Object, default: {} })
+  boosterInventory: Record<string, number>;
+
+  @Prop({
+    type: [
+      {
+        boosterType: { type: String },
+        multiplier: { type: Number },
+        expiresAt: { type: Date },
+      },
+    ],
+    default: [],
+  })
+  activeBoosters: Array<{
+    boosterType: string;
+    multiplier?: number;
+    expiresAt?: Date;
+  }>;
+
+  @Prop({ default: false, index: true })
+  banned: boolean;
+
+  @Prop({})
+  bannedUntil?: Date;
+
+  @Prop()
+  banReason?: string;
 
   @Prop({ index: true })
   refreshToken: string;
