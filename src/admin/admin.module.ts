@@ -8,6 +8,15 @@ import { Item, ItemSchema } from '../shop/schemas/item.schema';
 import { Booster, BoosterSchema } from '../shop/schemas/booster.schema';
 import { UserModule } from '../user/user.module';
 import { CoinsModule } from '../coins/coins.module';
+import { GameConfig, GameConfigSchema } from './schemas/game-config.schema';
+import {
+  AnalyticsSnapshot,
+  AnalyticsSnapshotSchema,
+} from './schemas/analytics-snapshot.schema';
+import {
+  Transaction,
+  TransactionSchema,
+} from '../coins/schemas/transaction.schema';
 
 @Module({
   imports: [
@@ -16,6 +25,9 @@ import { CoinsModule } from '../coins/coins.module';
       { name: Mission.name, schema: MissionSchema },
       { name: Item.name, schema: ItemSchema },
       { name: Booster.name, schema: BoosterSchema },
+      { name: GameConfig.name, schema: GameConfigSchema },
+      { name: AnalyticsSnapshot.name, schema: AnalyticsSnapshotSchema },
+      { name: Transaction.name, schema: TransactionSchema },
     ]),
     UserModule,
     CoinsModule,

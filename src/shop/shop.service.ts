@@ -59,34 +59,108 @@ export class ShopService {
       opId: purchaseItemDto.opId,
     });
 
-    // Apply item effect
-    let itemState = {};
-    switch (item.type) {
-      case 'multitap':
-        itemState = { multitapLevel: user.multitapLevel + 1 };
-        break;
-      case 'energy':
-        itemState = {
-          energyLimit: user.energyLimit + item.meta.energyIncrease,
-        };
-        break;
-      case 'card':
-        // Handle card purchase logic
-        break;
-      default:
-        break;
+    const { updateDoc, coinBonus } = await this.getItemUpdate(user, item);
+
+    let updatedUser = user;
+    if (Object.keys(updateDoc).length > 0) {
+      updatedUser = await this.userService.updateUserState(deviceId, updateDoc);
+    } else {
+      updatedUser = await this.userService.findByDeviceId(deviceId);
     }
 
-    // Update user state
-    const updatedUser = await this.userService.updateUserState(
-      deviceId,
-      itemState,
-    );
+    if (coinBonus) {
+      await this.coinsService.updateCoins(deviceId, {
+        delta: coinBonus,
+        reason: `purchase_bonus_${item.type}`,
+        opId: `${purchaseItemDto.opId}_bonus`,
+      });
+      updatedUser = await this.userService.findByDeviceId(deviceId);
+    }
 
     return {
       success: true,
       newBalance: updatedUser.coins,
       itemState: updatedUser,
+    };
+  }
+
+  private async getItemUpdate(user: any, item: any) {
+    const updateDoc: any = {};
+    const coinBonus = 0;
+
+    switch (item.type) {
+      case 'multitap':
+        updateDoc.$inc = { multitapLevel: 1 };
+        break;
+      case 'energy':
+        updateDoc.$inc = {
+          energyLimit: item.meta?.energyIncrease || 0,
+        };
+        break;
+      case 'booster':
+        return this.applyBoosterPurchase(user, item);
+      case 'card':
+        // Placeholder for future card inventory support
+        break;
+      default:
+        break;
+    }
+
+    return { updateDoc: this.cleanUpdateDoc(updateDoc), coinBonus };
+  }
+
+  private cleanUpdateDoc(updateDoc: Record<string, any>) {
+    return Object.fromEntries(
+      Object.entries(updateDoc).filter(([, value]) => {
+        if (value == null) return false;
+        if (typeof value === 'object') {
+          return Object.keys(value).length > 0;
+        }
+        return true;
+      }),
+    );
+  }
+
+  private applyBoosterPurchase(user: any, item: any) {
+    const updateDoc: any = { $inc: {}, $push: {}, $set: {} };
+    const meta = item.meta || {};
+    const boosterType = meta.boosterType || meta.type || item.name;
+    const quantity = meta.quantity || 1;
+    const duration = meta.durationMinutes;
+    let coinBonus = 0;
+
+    if (quantity > 0) {
+      updateDoc.$inc[`boosterInventory.${boosterType}`] = quantity;
+    }
+
+    if (meta.instantCoins) {
+      coinBonus += meta.instantCoins;
+    }
+
+    if (meta.restoreEnergy) {
+      updateDoc.$set.energy = user.energyLimit;
+    }
+
+    if (meta.energyAmount) {
+      const newEnergy = Math.min(
+        user.energyLimit,
+        (user.energy || 0) + meta.energyAmount,
+      );
+      updateDoc.$set.energy = newEnergy;
+    }
+
+    if (duration) {
+      const expiresAt = new Date(Date.now() + duration * 60000);
+      updateDoc.$push.activeBoosters = {
+        boosterType,
+        multiplier: meta.multiplier,
+        expiresAt,
+      };
+    }
+
+    return {
+      updateDoc: this.cleanUpdateDoc(updateDoc),
+      coinBonus,
     };
   }
 }

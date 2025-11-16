@@ -46,15 +46,29 @@ The application uses MongoDB with the following collections:
 - `items` - Shop items
 - `missions` - Mission definitions
 
+## Features
+
+- **Authentication** for device users and admins, with separate JWTs and refresh handling.
+- **Player progression** covering coins, energy, multitap upgrades, and mission/social task flows.
+- **Economy** with idempotent coin mutations logged to a ledger and consumable shop items.
+- **Redeem codes** that can be created by admins, optionally pre-assigned to a user with gift metadata, and require admin confirmation before rewards are applied.
+- **Gifting** between users via admin-managed gift records.
+- **Tournaments** that cap entries at 10 players, track coins generated during the event, and compute winners from the leaderboard.
+- **Notifications** for registering device tokens and dispatching messages from admin tools.
+- **Admin console** endpoints for bans, analytics snapshots, and game-configuration storage.
+
 ## Architecture
 
-The backend follows a modular structure with separate modules for:
+The backend follows a modular structure with separate modules for authentication, users, shop, missions, leaderboard, gifting, redeem codes, tournaments, and notifications. All state-changing operations are idempotent using `opId` to prevent duplicate processing.
 
-- Authentication (device and admin)
-- User management
-- Coin transactions
-- Shop items
-- Missions
-- Leaderboard
+### Redeem code lifecycle
 
-All state-changing operations are idempotent using `opId` to prevent duplicate processing.
+1. **Create** – An admin creates a code with rewards, optional expiry/max uses, and optional assignment to a specific user plus gift context.
+2. **Confirm** – A user provides the code to an admin, who confirms it via the admin redeem endpoint; only after confirmation are rewards applied and the use recorded.
+3. **Audit** – Codes track confirmation status, assignment, and usage history to prevent unauthorized redemption.
+
+### Tournament rules
+
+1. **Enrollment** – Up to 10 players can join an active tournament; additional join attempts are rejected once the cap is reached.
+2. **Scoring** – Clients submit coins-generated totals; higher coin totals overwrite a player’s previous best.
+3. **Results** – Leaderboards sort by coins generated to surface current placement and winners at event end.

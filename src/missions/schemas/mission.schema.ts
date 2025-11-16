@@ -22,6 +22,9 @@ export class Mission {
   @Prop({ type: Object, default: {} })
   meta: Record<string, any>;
 
+  @Prop({ type: [Object], default: [] })
+  rewards: Array<Record<string, any>>;
+
   @Prop({ default: true })
   active: boolean;
 
