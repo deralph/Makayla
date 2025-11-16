@@ -78,8 +78,7 @@ export class GiftingService {
         $or: [{ senderDeviceId: deviceId }, { recipientDeviceId: deviceId }],
       })
       .sort({ createdAt: -1 })
-      .limit(50)
-      .lean();
+      .limit(50);
 
     return {
       gifts: gifts.map((gift) => ({
