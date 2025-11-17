@@ -21,6 +21,12 @@ export class Gift {
 
   @Prop({ default: 'completed' })
   status: 'completed' | 'failed';
+
+  @Prop()
+  createdAt?: Date;
+
+  @Prop()
+  updatedAt?: Date;
 }
 
 export const GiftSchema = SchemaFactory.createForClass(Gift);

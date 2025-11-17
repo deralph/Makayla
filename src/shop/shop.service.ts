@@ -1,4 +1,8 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Item, ItemDocument } from './schemas/item.schema';
@@ -35,7 +39,7 @@ export class ShopService {
   async purchaseItem(deviceId: string, purchaseItemDto: PurchaseItemDto) {
     const user = await this.userService.findByDeviceId(deviceId);
     if (!user) {
-      throw new Error('User not found');
+      throw new NotFoundException('User not found');
     }
 
     // Check if item exists
@@ -65,7 +69,15 @@ export class ShopService {
     if (Object.keys(updateDoc).length > 0) {
       updatedUser = await this.userService.updateUserState(deviceId, updateDoc);
     } else {
-      updatedUser = await this.userService.findByDeviceId(deviceId);
+      const foundUser = await this.userService.findByDeviceId(deviceId);
+      if (!foundUser) {
+        throw new NotFoundException('User not found');
+      }
+      updatedUser = foundUser;
+    }
+
+    if (!updatedUser) {
+      throw new NotFoundException('User not found');
     }
 
     if (coinBonus) {
@@ -74,7 +86,11 @@ export class ShopService {
         reason: `purchase_bonus_${item.type}`,
         opId: `${purchaseItemDto.opId}_bonus`,
       });
-      updatedUser = await this.userService.findByDeviceId(deviceId);
+      const refreshedUser = await this.userService.findByDeviceId(deviceId);
+      if (!refreshedUser) {
+        throw new NotFoundException('User not found');
+      }
+      updatedUser = refreshedUser;
     }
 
     return {

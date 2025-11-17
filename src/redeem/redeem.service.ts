@@ -140,9 +140,13 @@ export class RedeemService {
         reason: code.gift.reason || 'redeem_code_gift',
         opId: `redeem_gift_${confirmCodeDto.deviceId}_${Date.now()}`,
       });
-      workingUser = await this.userService.findByDeviceId(
+      const refreshedUser = await this.userService.findByDeviceId(
         confirmCodeDto.deviceId,
       );
+      if (!refreshedUser) {
+        throw new NotFoundException('User not found');
+      }
+      workingUser = refreshedUser;
     }
 
     const rewardResult = await this.applyRewards(

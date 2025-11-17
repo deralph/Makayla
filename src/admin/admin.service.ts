@@ -394,7 +394,7 @@ export class AdminService {
 
   // === GAME CONFIGURATION ===
   async getConfig() {
-    let config = await this.gameConfigModel.findOne({ key: 'default' }).lean();
+    let config = await this.gameConfigModel.findOne({ key: 'default' });
 
     if (!config) {
       config = await new this.gameConfigModel({
@@ -413,6 +413,10 @@ export class AdminService {
           videoAdReward: 1300,
         },
       }).save();
+    }
+
+    if (!config) {
+      throw new NotFoundException('Game config not found');
     }
 
     return {

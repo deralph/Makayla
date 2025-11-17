@@ -31,4 +31,19 @@ export class UpdateUserStateDto {
   @IsNumber()
   @IsOptional()
   rankPoints?: number;
+
+  @ApiProperty({ required: false, type: Object })
+  @IsOptional()
+  $set?: {
+    coins?: number;
+    energy?: number;
+    profitPerHour?: number;
+    level?: number;
+    rank?: string;
+    rankPoints?: number;
+    banned?: boolean;
+    bannedUntil?: Date | null;
+    banReason?: string | null;
+    [key: string]: any;
+  };
 }
